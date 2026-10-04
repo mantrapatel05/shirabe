@@ -49,7 +49,7 @@ GROQ_API_KEY=your_groq_api_key
 GROQ_MODEL=openai/gpt-oss-120b
 ```
 
-LangSmith tracing is optional. The current `.env.example` enables it; add a LangSmith key to use it, or set `LANGSMITH_TRACING=false` to disable tracing. Traces may contain your question and repository excerpts.
+LangSmith tracing is optional and disabled by default. To enable it, set `LANGSMITH_TRACING=true` in `.env` and add your LangSmith key. Traces may contain your question and repository excerpts.
 
 The repository's `.gitignore` excludes `.env`, but never commit API keys or paste them into issue reports.
 
@@ -67,34 +67,55 @@ Or start interactive mode:
 python main.py
 ```
 
-The repository must be public and hosted on GitHub. Each run clones it into a temporary directory, then plans searches, gathers evidence, and prints an answer.
+The repository must be public and hosted on GitHub. Each run clones it into a temporary directory, then plans searches, gathers evidence, and prints an answer. Temporary clones are always cleaned up, even on failure.
 
 ## How the current implementation works
 
 1. **Planner:** asks the model for 3–5 plain-keyword search queries.
 2. **Investigator:** searches supported text files. All query terms must occur on the same line. Each search returns up to 8 snippets, with up to 2 surrounding lines.
-3. **Analyzer:** reviews the gathered evidence and can request another search pass. The graph allows at most 3 investigation passes.
+3. **Analyzer:** reviews the gathered evidence and can request another search pass. The graph allows at most 3 investigation passes (configurable).
 4. **Explainer:** writes the final answer and is prompted to cite repository paths and line ranges, while separating evidence from inference.
 
-Repository cloning is shallow and has a 120-second timeout. Search skips configured directories and files larger than 500 KB. The analyzer receives at most 30,000 characters of evidence.
+Repository cloning is shallow and has a configurable timeout (default 120 s). Repositories exceeding file-count or byte-size budgets are rejected before search begins. Search skips configured directories and files larger than 500 KB. The analyzer receives at most 30,000 characters of evidence.
 
 ## Project files
 
 | File | Purpose |
 |---|---|
-| `main.py` | CLI setup, repository clone, graph invocation, and output |
+| `main.py` | CLI setup, config validation, clone, budget check, graph invocation, cleanup |
 | `graph.py` | LangGraph nodes and investigation loop |
-| `nodes.py` | Planner, investigator, analyzer, and explainer |
+| `nodes.py` | Planner, investigator, analyzer, and explainer with error handling |
 | `state.py` | Shared graph state and evidence reducer |
-| `tools.py` | GitHub cloning, text search, and bounded file reads |
-| `evaluate.py` | Early evaluation scaffold |
+| `tools.py` | GitHub cloning, text search, budget enforcement, and bounded file reads |
+| `config.py` | Centralized environment configuration loading and validation |
+| `errors.py` | Exception hierarchy for user-facing errors |
+| `evaluate.py` | Early evaluation scaffold (v0.3) |
+| `tests/` | 47 tests across 5 files |
 
 ## Configuration
 
-| Variable | Purpose |
-|---|---|
-| `GROQ_API_KEY` | Required API key for model calls |
-| `GROQ_MODEL` | Optional model name; defaults to `openai/gpt-oss-120b` |
-| `LANGSMITH_TRACING` | Enables/disables LangSmith tracing |
-| `LANGSMITH_API_KEY` | Required only when using LangSmith tracing |
-| `LANGSMITH_PROJECT` | Optional LangSmith project name |
+| Variable | Purpose | Default |
+|---|---|---|
+| `GROQ_API_KEY` | Required API key for model calls | — |
+| `GROQ_MODEL` | Model name | `openai/gpt-oss-120b` |
+| `LANGSMITH_TRACING` | Enable LangSmith tracing | `false` |
+| `LANGSMITH_API_KEY` | Required only when tracing is enabled | — |
+| `LANGSMITH_PROJECT` | LangSmith project name | `shirabe` |
+| `SHIRABE_MAX_ITERATIONS` | Max investigation passes | `3` |
+| `SHIRABE_CLONE_TIMEOUT_SECONDS` | Clone timeout | `120` |
+| `SHIRABE_MAX_REPO_FILES` | Max files in cloned repo | `4000` |
+| `SHIRABE_MAX_REPO_TOTAL_BYTES` | Max total bytes in cloned repo | `200000000` |
+| `SHIRABE_MAX_FILE_BYTES` | Max size of a single file to search | `500000` |
+| `SHIRABE_MAX_EVIDENCE_CHARS` | Max evidence chars sent to analyzer | `30000` |
+
+## Development
+
+Install dev dependencies and run the full check suite:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+ruff check .
+mypy config.py errors.py tools.py nodes.py main.py
+pip-audit -r requirements.txt
+```
