@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from config import load_settings
 from errors import ShirabeError
+from evidence import summarize_checks
 from graph import app
 from tools import check_repo_budget, cleanup_repository, clone_repository
 
@@ -52,8 +53,11 @@ def main() -> int:
                 "question": question,
                 "plan": [],
                 "evidence": [],
+                "evidence_records": [],
                 "analysis": "",
                 "answer": "",
+                "citation_report": [],
+                "abstained": False,
                 "iteration": 0,
                 "max_iterations": settings.max_iterations,
                 "needs_more_evidence": False,
@@ -62,6 +66,17 @@ def main() -> int:
         print("\n" + "=" * 80)
         print(result["answer"])
         print("=" * 80)
+        records = result.get("evidence_records", [])
+        if records:
+            snapshot = records[0].snapshot_id or "unknown"
+            print(f"\nEvidence: {len(records)} ranges (snapshot {snapshot})")
+        checks = result.get("citation_report", [])
+        if checks:
+            print("Citation integrity:")
+            for line in summarize_checks(checks):
+                print(f"  {line}")
+        if result.get("abstained"):
+            print("Shirabe abstained: the checkout did not contain enough evidence.")
         return 0
     except ShirabeError as exc:
         print(f"Investigation failed: {exc}", file=sys.stderr)

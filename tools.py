@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -137,12 +138,41 @@ def search_repository(
     max_results: int = 8,
     max_file_bytes: int = MAX_FILE_BYTES,
 ) -> list[str]:
+    return [
+        format_search_hit(hit) for hit in search_hits(repo_path, query, max_results, max_file_bytes)
+    ]
+
+
+@dataclass(frozen=True)
+class SearchHit:
+    """One structured search match: POSIX relative path, 1-indexed range, raw lines."""
+
+    path: str
+    start_line: int
+    end_line: int
+    lines: tuple[str, ...]
+
+
+def format_search_hit(hit: SearchHit) -> str:
+    snippet = "\n".join(
+        f"{hit.start_line + offset}: {line}" for offset, line in enumerate(hit.lines)
+    )
+    return f"FILE: {hit.path}\nLINES: {hit.start_line}-{hit.end_line}\n{snippet}"
+
+
+def search_hits(
+    repo_path: str,
+    query: str,
+    max_results: int = 8,
+    max_file_bytes: int = MAX_FILE_BYTES,
+) -> list[SearchHit]:
     terms = [x.lower() for x in query.split() if x.strip()]
 
     if not terms:
         return []
 
-    results = []
+    root = Path(repo_path)
+    hits: list[SearchHit] = []
 
     for path in _iter_text_files(repo_path, max_file_bytes):
         try:
@@ -154,27 +184,100 @@ def search_repository(
             if all(term in line.lower() for term in terms):
                 start = max(0, index - 2)
                 end = min(len(lines), index + 3)
-                relative = path.relative_to(repo_path)
-                snippet = "\n".join(
-                    f"{start + offset + 1}: {lines[start + offset]}" for offset in range(end - start)
+                hits.append(
+                    SearchHit(
+                        path=path.relative_to(root).as_posix(),
+                        start_line=start + 1,
+                        end_line=end,
+                        lines=tuple(lines[start:end]),
+                    )
                 )
-                results.append(f"FILE: {relative}\nLINES: {start + 1}-{end}\n{snippet}")
-                if len(results) >= max_results:
-                    return results
+                if len(hits) >= max_results:
+                    return hits
 
-    return results
+    return hits
 
 
 def search_repo(repo_path: str, query: str, max_results: int = 8) -> list[str]:
     return search_repository(repo_path, query, max_results)
 
 
-def read_file(repo_path: str, relative_path: str, max_chars: int = 8000) -> str:
+def _resolve_within_root(repo_path: str, relative_path: str) -> Path:
     root = Path(repo_path).resolve()
     candidate = (root / relative_path).resolve()
 
     if root not in candidate.parents and candidate != root:
         raise ValueError("Path escapes repository root.")
+    return candidate
+
+
+def read_file(repo_path: str, relative_path: str, max_chars: int = 8000) -> str:
+    candidate = _resolve_within_root(repo_path, relative_path)
+
     if not candidate.is_file():
         raise FileNotFoundError(relative_path)
     return candidate.read_text(encoding="utf-8", errors="ignore")[:max_chars]
+
+
+def read_range(
+    repo_path: str,
+    relative_path: str,
+    start_line: int,
+    end_line: int,
+    max_chars: int = 8000,
+) -> list[str]:
+    """Read whole lines [start_line, end_line] (1-indexed, inclusive).
+
+    The path must stay inside the repository root, exactly like read_file.
+    Ranges are clamped to the end of the file; out-of-range requests raise
+    ValueError instead of silently returning unrelated lines.
+    """
+    if (
+        not isinstance(start_line, int)
+        or isinstance(start_line, bool)
+        or not isinstance(end_line, int)
+        or isinstance(end_line, bool)
+        or start_line < 1
+        or end_line < start_line
+    ):
+        raise ValueError(f"Invalid line range: {start_line}-{end_line}.")
+
+    candidate = _resolve_within_root(repo_path, relative_path)
+    if not candidate.is_file():
+        raise FileNotFoundError(relative_path)
+
+    lines = candidate.read_text(encoding="utf-8", errors="ignore").splitlines()
+    if start_line > len(lines):
+        raise ValueError(f"Start line {start_line} is beyond the end of {relative_path}.")
+
+    selected = lines[start_line - 1 : min(end_line, len(lines))]
+    kept: list[str] = []
+    used = 0
+    for line in selected:
+        if kept and used + len(line) + 1 > max_chars:
+            break
+        kept.append(line)
+        used += len(line) + 1
+    return kept
+
+
+def get_repo_revision(repo_path: str) -> str:
+    """Return the checkout's commit SHA, or "" when it cannot be determined.
+
+    Never raises: a missing SHA degrades to "unknown snapshot", never to a
+    failed investigation.
+    """
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    if completed.returncode != 0:
+        return ""
+    sha = completed.stdout.strip()
+    return sha if re.fullmatch(r"[0-9a-f]{40}", sha) else ""

@@ -6,8 +6,21 @@ from langchain_groq import ChatGroq
 
 from config import load_settings
 from errors import ProviderError
+from evidence import (
+    EVIDENCE_ID_PREFIX,
+    EVIDENCE_PREAMBLE,
+    MAX_EVIDENCE_RECORDS,
+    AnswerClaim,
+    Citation,
+    EvidenceRecord,
+    build_abstention,
+    format_evidence,
+    parse_claims,
+    render_claims,
+    validate_claim,
+)
 from state import AgentState
-from tools import search_repository
+from tools import get_repo_revision, read_range, search_hits
 
 
 def _text(response) -> str:
@@ -73,11 +86,49 @@ def plan_node(state: AgentState):
 
 
 def investigate_node(state: AgentState):
-    evidence = []
+    """Search the checkout and expand hits into validated evidence records.
+
+    Every hit is re-read through the repository-root-confined reader, so the
+    stored excerpt is exactly the range the citation validator will check.
+    IDs are stable across investigation passes; already-seen ranges are not
+    recorded twice.
+    """
+    existing = state.get("evidence_records", [])
+    seen = {(record.path, record.start_line, record.end_line) for record in existing}
+    budget = MAX_EVIDENCE_RECORDS - len(existing)
+    snapshot_id = get_repo_revision(state["repo_path"])
+
+    records: list[EvidenceRecord] = []
+    next_id = len(existing) + 1
     for query in state["plan"]:
-        for match in search_repository(state["repo_path"], query):
-            evidence.append(f"QUERY: {query}\n{match}")
-    return {"evidence": evidence, "iteration": state["iteration"] + 1}
+        if len(records) >= budget:
+            break
+        for hit in search_hits(state["repo_path"], query):
+            if len(records) >= budget:
+                break
+            if (hit.path, hit.start_line, hit.end_line) in seen:
+                continue
+            try:
+                lines = read_range(state["repo_path"], hit.path, hit.start_line, hit.end_line)
+            except (OSError, ValueError):
+                continue
+            excerpt = "\n".join(
+                f"{hit.start_line + offset}: {line}" for offset, line in enumerate(lines)
+            )
+            record = EvidenceRecord(
+                evidence_id=f"{EVIDENCE_ID_PREFIX}{next_id}",
+                path=hit.path,
+                start_line=hit.start_line,
+                end_line=hit.end_line,
+                reason=f"query: {query}",
+                excerpt=excerpt,
+                snapshot_id=snapshot_id,
+            )
+            records.append(record)
+            seen.add((record.path, record.start_line, record.end_line))
+            next_id += 1
+    evidence = [format_evidence(record) for record in records]
+    return {"evidence": evidence, "evidence_records": records, "iteration": state["iteration"] + 1}
 
 
 def analyze_node(state: AgentState):
@@ -85,7 +136,7 @@ def analyze_node(state: AgentState):
     analysis = _invoke(
         "You are analyzing evidence from a software repository.\n"
         f'Question:\n{state["question"]}\n'
-        f"Repository evidence:\n{evidence_text[:30000]}\n"
+        f"Repository evidence:\n{EVIDENCE_PREAMBLE}\n{evidence_text[:30000]}\n"
         "Produce a technical analysis. Identify concrete files/symbols, explain control/data "
         "flow, separate direct evidence from inference, never invent behavior, and say what is "
         "missing if evidence is insufficient. End with exactly one line: "
@@ -101,14 +152,54 @@ def route_after_analysis(state: AgentState):
 
 
 def explain_node(state: AgentState):
+    """Build the final answer from validated evidence only.
+
+    Claims cite evidence IDs; every ID, path, and range is checked against
+    the records actually sent to the model. Claims without a valid citation
+    are dropped, and the run abstains when nothing citable remains. An empty
+    evidence ledger abstains without calling the model at all.
+    """
+    records = state.get("evidence_records", [])
+    if not records:
+        checked = f"queries {state['plan']} against {state['repo_url']} (no matching source ranges)"
+        return {
+            "answer": build_abstention(state["question"], checked),
+            "citation_report": [],
+            "abstained": True,
+        }
+
     evidence_text = "\n\n---\n\n".join(state["evidence"])
-    answer = _invoke(
+    response = _invoke(
         "You are an engineering explainer.\n"
         f'Question:\n{state["question"]}\n'
         f'Analysis:\n{state["analysis"]}\n'
-        f"Evidence:\n{evidence_text[:30000]}\n"
-        "Write a concise, technically precise answer. Cite repository-relative file paths and "
-        "line ranges when available. Distinguish observed evidence from inference. Do not make "
-        "unsupported claims. Prefer concrete execution/data-flow explanations."
+        f"Evidence:\n{EVIDENCE_PREAMBLE}\n{evidence_text[:30000]}\n"
+        "Write a concise, technically precise answer as JSON with this exact shape: "
+        '{"claims": [{"text": "...", "evidence": ["E1", {"id": "E2", '
+        '"start_line": 3, "end_line": 5}]}]}. '
+        "Every claim must cite at least one evidence ID shown above; cite only IDs shown above. "
+        "Use an explicit id/start_line/end_line object only to narrow a range, keeping it "
+        "inside the cited record's range. Distinguish observed evidence from inference. "
+        "Do not make unsupported claims."
     )
-    return {"answer": answer}
+    try:
+        claims = parse_claims(response)
+    except ValueError as exc:
+        raise ProviderError(f"Explainer returned invalid output ({exc}).") from None
+
+    records_by_id = {record.evidence_id: record for record in records}
+    rendered: list[tuple[AnswerClaim, list[Citation]]] = []
+    checks = []
+    for claim in claims:
+        accepted, claim_checks = validate_claim(claim, records_by_id)
+        checks.extend(claim_checks)
+        if accepted:
+            rendered.append((claim, accepted))
+    if not rendered:
+        checked = f"{len(records)} evidence ranges, none supporting a cited claim"
+        return {
+            "answer": build_abstention(state["question"], checked),
+            "citation_report": checks,
+            "abstained": True,
+        }
+    return {"answer": render_claims(rendered), "citation_report": checks, "abstained": False}

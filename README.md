@@ -72,9 +72,9 @@ The repository must be public and hosted on GitHub. Each run clones it into a te
 ## How the current implementation works
 
 1. **Planner:** asks the model for 3–5 plain-keyword search queries.
-2. **Investigator:** searches supported text files. All query terms must occur on the same line. Each search returns up to 8 snippets, with up to 2 surrounding lines.
+2. **Investigator:** searches supported text files. All query terms must occur on the same line. Each search returns up to 8 snippets, with up to 2 surrounding lines. Hits are expanded through a root-confined reader into typed evidence records with stable IDs, bounded excerpts, and the checkout's commit SHA when available.
 3. **Analyzer:** reviews the gathered evidence and can request another search pass. The graph allows at most 3 investigation passes (configurable).
-4. **Explainer:** writes the final answer and is prompted to cite repository paths and line ranges, while separating evidence from inference.
+4. **Explainer:** returns structured claims that cite evidence IDs. Every ID, path, and line range is validated against the evidence actually sent to the model; claims without a valid citation are dropped, and runs with no supporting evidence abstain explicitly instead of guessing. The CLI prints citation-integrity findings after the answer.
 
 Repository cloning is shallow and has a configurable timeout (default 120 s). Repositories exceeding file-count or byte-size budgets are rejected before search begins. Search skips configured directories and files larger than 500 KB. The analyzer receives at most 30,000 characters of evidence.
 
@@ -89,6 +89,7 @@ Repository cloning is shallow and has a configurable timeout (default 120 s). Re
 | `tools.py` | GitHub cloning, text search, budget enforcement, and bounded file reads |
 | `config.py` | Centralized environment configuration loading and validation |
 | `errors.py` | Exception hierarchy for user-facing errors |
+| `evidence.py` | Typed evidence records, claim parsing, and citation-integrity checks |
 | `evaluate.py` | Early evaluation scaffold (v0.3) |
 | `tests/` | Deterministic tests; they need no network, model key, or tracing credentials |
 
