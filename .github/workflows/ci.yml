@@ -1,0 +1,39 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      GROQ_API_KEY: ""
+      LANGSMITH_TRACING: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run tests (no credentials)
+        run: pytest
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Type-check
+        run: mypy config.py errors.py tools.py nodes.py main.py graph.py state.py evaluate.py
+
+      - name: Dependency audit
+        run: pip-audit -r requirements.txt
+
+      - name: Whitespace check
+        run: git diff --check

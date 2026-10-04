@@ -90,7 +90,7 @@ Repository cloning is shallow and has a configurable timeout (default 120 s). Re
 | `config.py` | Centralized environment configuration loading and validation |
 | `errors.py` | Exception hierarchy for user-facing errors |
 | `evaluate.py` | Early evaluation scaffold (v0.3) |
-| `tests/` | 47 tests across 5 files |
+| `tests/` | Deterministic tests; they need no network, model key, or tracing credentials |
 
 ## Configuration
 
@@ -116,6 +116,10 @@ Install dev dependencies and run the full check suite:
 pip install -r requirements-dev.txt
 pytest
 ruff check .
-mypy config.py errors.py tools.py nodes.py main.py
+mypy config.py errors.py tools.py nodes.py main.py graph.py state.py evaluate.py
 pip-audit -r requirements.txt
 ```
+
+These checks need no `GROQ_API_KEY` or LangSmith credentials: tests mock the
+model client, the temp clone, and the graph invocation. The same steps run in
+CI (`.github/workflows/ci.yml`) on every push and pull request.

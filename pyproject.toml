@@ -1,7 +1,6 @@
 [tool.ruff]
 line-length = 110
 target-version = "py311"
-extend-exclude = ["graph.py", "state.py", "evaluate.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
