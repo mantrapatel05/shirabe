@@ -42,6 +42,7 @@ def _state(**overrides):
         "plan": ["test"],
         "evidence": [],
         "evidence_records": [],
+        "max_evidence_chars": 30000,
         "analysis": "",
         "answer": "",
         "citation_report": [],

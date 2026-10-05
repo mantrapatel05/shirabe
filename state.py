@@ -15,6 +15,7 @@ class AgentState(TypedDict):
     plan: list[str]
     evidence: Annotated[list[str], add]
     evidence_records: Annotated[list[EvidenceRecord], add]
+    max_evidence_chars: int
     analysis: str
     answer: str
     answer_claims: list[dict[str, Any]]

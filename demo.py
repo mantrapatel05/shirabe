@@ -12,6 +12,7 @@ import argparse
 import sys
 import time
 
+from config import tracing_disabled
 from eval_cases import CASES, DATASET_REVISION, RETRIEVAL_CUTOFF_K, EvalCase
 from evaluate import base_state, explain_with_mocked_claims
 from evidence import MAX_EVIDENCE_RECORDS, MAX_EXCERPT_CHARS, format_evidence, summarize_checks
@@ -95,7 +96,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--save-report", default=None, metavar="PATH")
     args = parser.parse_args(argv)
     try:
-        return run_demo(args.save_report)
+        with tracing_disabled():
+            return run_demo(args.save_report)
     except (ValueError, OSError) as exc:
         print(f"Demo failed: {exc}", file=sys.stderr)
         return 1

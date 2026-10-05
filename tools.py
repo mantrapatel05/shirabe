@@ -115,9 +115,12 @@ def check_repo_budget(repo_path: str, max_files: int, max_total_bytes: int) -> N
 def _iter_text_files(repo_path: str, max_file_bytes: int = MAX_FILE_BYTES):
     root = Path(repo_path)
 
-    for path in root.rglob("*"):
-        if not path.is_file() or any(part in IGNORED_DIRS for part in path.parts):
-            continue
+    candidates = sorted(
+        path
+        for path in root.rglob("*")
+        if path.is_file() and not any(part in IGNORED_DIRS for part in path.parts)
+    )
+    for path in candidates:
         if path.suffix.lower() not in TEXT_EXTENSIONS:
             continue
         try:
@@ -165,28 +168,33 @@ def search_hits(
     query: str,
     max_results: int = 8,
     max_file_bytes: int = MAX_FILE_BYTES,
+    lines_cache: dict[str, list[str]] | None = None,
 ) -> list[SearchHit]:
+    """Keyword search returning structured hits in deterministic file order.
+
+    Pass lines_cache from load_text_lines to scan the checkout once per
+    investigation pass instead of re-reading every file per query; results
+    are identical either way.
+    """
     terms = [x.lower() for x in query.split() if x.strip()]
 
     if not terms:
         return []
 
-    root = Path(repo_path)
+    if lines_cache is not None:
+        sources: list[tuple[str, list[str]]] = sorted(lines_cache.items())
+    else:
+        sources = list(_walk_text_lines(repo_path, max_file_bytes))
+
     hits: list[SearchHit] = []
-
-    for path in _iter_text_files(repo_path, max_file_bytes):
-        try:
-            lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
-        except OSError:
-            continue
-
+    for relative, lines in sources:
         for index, line in enumerate(lines):
             if all(term in line.lower() for term in terms):
                 start = max(0, index - 2)
                 end = min(len(lines), index + 3)
                 hits.append(
                     SearchHit(
-                        path=path.relative_to(root).as_posix(),
+                        path=relative,
                         start_line=start + 1,
                         end_line=end,
                         lines=tuple(lines[start:end]),
@@ -196,6 +204,23 @@ def search_hits(
                     return hits
 
     return hits
+
+
+def _walk_text_lines(repo_path: str, max_file_bytes: int):
+    root = Path(repo_path)
+    for path in _iter_text_files(repo_path, max_file_bytes):
+        try:
+            lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        except OSError:
+            continue
+        yield path.relative_to(root).as_posix(), lines
+
+
+def load_text_lines(
+    repo_path: str, max_file_bytes: int = MAX_FILE_BYTES
+) -> dict[str, list[str]]:
+    """Read every searchable file once: POSIX relative path to its lines."""
+    return dict(_walk_text_lines(repo_path, max_file_bytes))
 
 
 def search_repo(repo_path: str, query: str, max_results: int = 8) -> list[str]:

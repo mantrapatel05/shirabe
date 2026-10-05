@@ -107,7 +107,7 @@ into the benchmark requires provenance, licensing, and privacy checks first.
 3. **Analyzer:** reviews the gathered evidence and can request another search pass. The graph allows at most 3 investigation passes (configurable).
 4. **Explainer:** returns structured claims that cite evidence IDs. Every ID, path, and line range is validated against the evidence actually sent to the model; claims without a valid citation are dropped, and runs with no supporting evidence abstain explicitly instead of guessing. The CLI prints citation-integrity findings after the answer.
 
-Repository cloning is shallow and has a configurable timeout (default 120 s). Repositories exceeding file-count or byte-size budgets are rejected before search begins. Search skips configured directories and files larger than 500 KB. The analyzer receives at most 30,000 characters of evidence.
+Repository cloning is shallow and has a configurable timeout (default 120 s). Repositories exceeding file-count or byte-size budgets are rejected before search begins. Search skips configured directories and files larger than 500 KB. Each investigation pass reads every searchable file once and scans matches in sorted path order. The analyzer and explainer receive at most `SHIRABE_MAX_EVIDENCE_CHARS` characters of evidence (default 30,000).
 
 ## Project files
 
@@ -204,6 +204,8 @@ signals, not general accuracy claims.
   with actionable messages; temp clones are always cleaned up.
 - Supported languages are lexical-only: retrieval matches plain keywords in
   configured text extensions and never implies complete static analysis.
+- Tracing enabled without a key fails fast at startup instead of silently
+  running untraced.
 
 ## Tracing privacy
 
@@ -212,7 +214,9 @@ LangSmith tracing is optional and disabled by default
 planned queries, and repository excerpts sent to the model. Saved
 investigation reports never include traces, prompts, secrets, or full
 repository contents — only bounded evidence excerpts, validation outcomes,
-and run metadata. The fixture demo and benchmark never enable tracing.
+and run metadata. The fixture demo, benchmark, and test suite force tracing
+off even when the surrounding environment enables it, so keyless runs never
+emit traces. The fixture demo and benchmark never enable tracing.
 
 ## Development
 

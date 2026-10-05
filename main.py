@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
 
@@ -117,6 +118,11 @@ def main() -> int:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 1
 
+    if settings.langsmith_tracing:
+        os.environ["LANGSMITH_TRACING"] = "true"
+        os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
+        os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project
+
     repo_url = args.repo_url or input("GitHub repository URL: ").strip()
     question = args.question or input("Engineering question: ").strip()
     if not repo_url or not question:
@@ -139,6 +145,7 @@ def main() -> int:
                 "plan": [],
                 "evidence": [],
                 "evidence_records": [],
+                "max_evidence_chars": settings.max_evidence_chars,
                 "analysis": "",
                 "answer": "",
                 "answer_claims": [],

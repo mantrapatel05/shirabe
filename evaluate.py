@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import nodes as nodes_module
-from config import load_settings
+from config import DEFAULT_MAX_EVIDENCE_CHARS, load_settings, tracing_disabled
 from errors import ShirabeError
 from eval_cases import CASES, DATASET_REVISION, RETRIEVAL_CUTOFF_K, EvalCase
 from eval_metrics import (
@@ -88,6 +88,7 @@ def base_state(case: EvalCase) -> AgentState:
         "plan": list(case.queries),
         "evidence": [],
         "evidence_records": [],
+        "max_evidence_chars": DEFAULT_MAX_EVIDENCE_CHARS,
         "analysis": "",
         "answer": "",
         "answer_claims": [],
@@ -134,6 +135,12 @@ def adversarial_probe(records: list) -> list[AnswerClaim]:
 
 
 def run_fixture_evaluation() -> dict:
+    """Deterministic benchmark entry point. Tracing is forced off here."""
+    with tracing_disabled():
+        return _run_fixture_evaluation()
+
+
+def _run_fixture_evaluation() -> dict:
     failures: list[str] = []
     case_rows: list[dict] = []
     outcomes: list[tuple[bool, bool]] = []

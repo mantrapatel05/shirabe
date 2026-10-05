@@ -20,7 +20,7 @@ from evidence import (
     validate_claim,
 )
 from state import AgentState
-from tools import get_repo_revision, read_range, search_hits
+from tools import get_repo_revision, load_text_lines, read_range, search_hits
 
 
 def _text(response) -> str:
@@ -97,13 +97,14 @@ def investigate_node(state: AgentState):
     seen = {(record.path, record.start_line, record.end_line) for record in existing}
     budget = MAX_EVIDENCE_RECORDS - len(existing)
     snapshot_id = get_repo_revision(state["repo_path"])
+    lines_cache = load_text_lines(state["repo_path"])
 
     records: list[EvidenceRecord] = []
     next_id = len(existing) + 1
     for query in state["plan"]:
         if len(records) >= budget:
             break
-        for hit in search_hits(state["repo_path"], query):
+        for hit in search_hits(state["repo_path"], query, lines_cache=lines_cache):
             if len(records) >= budget:
                 break
             if (hit.path, hit.start_line, hit.end_line) in seen:
@@ -136,7 +137,7 @@ def analyze_node(state: AgentState):
     analysis = _invoke(
         "You are analyzing evidence from a software repository.\n"
         f'Question:\n{state["question"]}\n'
-        f"Repository evidence:\n{EVIDENCE_PREAMBLE}\n{evidence_text[:30000]}\n"
+        f"Repository evidence:\n{EVIDENCE_PREAMBLE}\n{evidence_text[: state['max_evidence_chars']]}\n"
         "Produce a technical analysis. Identify concrete files/symbols, explain control/data "
         "flow, separate direct evidence from inference, never invent behavior, and say what is "
         "missing if evidence is insufficient. End with exactly one line: "
@@ -174,7 +175,7 @@ def explain_node(state: AgentState):
         "You are an engineering explainer.\n"
         f'Question:\n{state["question"]}\n'
         f'Analysis:\n{state["analysis"]}\n'
-        f"Evidence:\n{EVIDENCE_PREAMBLE}\n{evidence_text[:30000]}\n"
+        f"Evidence:\n{EVIDENCE_PREAMBLE}\n{evidence_text[: state['max_evidence_chars']]}\n"
         "Write a concise, technically precise answer as JSON with this exact shape: "
         '{"claims": [{"text": "...", "evidence": ["E1", {"id": "E2", '
         '"start_line": 3, "end_line": 5}]}]}. '
