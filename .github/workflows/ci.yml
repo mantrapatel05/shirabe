@@ -29,11 +29,14 @@ jobs:
       - name: Deterministic benchmark (no credentials)
         run: python evaluate.py --mode fixture
 
+      - name: No-key demo (no credentials)
+        run: python demo.py
+
       - name: Lint
         run: ruff check .
 
       - name: Type-check
-        run: mypy config.py errors.py tools.py nodes.py main.py graph.py state.py evaluate.py evidence.py eval_cases.py eval_metrics.py
+        run: mypy config.py errors.py tools.py nodes.py main.py graph.py state.py evaluate.py evidence.py eval_cases.py eval_metrics.py report.py demo.py
 
       - name: Dependency audit
         run: pip-audit -r requirements.txt

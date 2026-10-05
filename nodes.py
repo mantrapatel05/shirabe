@@ -164,6 +164,7 @@ def explain_node(state: AgentState):
         checked = f"queries {state['plan']} against {state['repo_url']} (no matching source ranges)"
         return {
             "answer": build_abstention(state["question"], checked),
+            "answer_claims": [],
             "citation_report": [],
             "abstained": True,
         }
@@ -199,7 +200,28 @@ def explain_node(state: AgentState):
         checked = f"{len(records)} evidence ranges, none supporting a cited claim"
         return {
             "answer": build_abstention(state["question"], checked),
+            "answer_claims": [],
             "citation_report": checks,
             "abstained": True,
         }
-    return {"answer": render_claims(rendered), "citation_report": checks, "abstained": False}
+    claim_dicts = [
+        {
+            "text": claim.text,
+            "citations": [
+                {
+                    "evidence_id": citation.evidence_id,
+                    "path": citation.path,
+                    "start_line": citation.start_line,
+                    "end_line": citation.end_line,
+                }
+                for citation in accepted
+            ],
+        }
+        for claim, accepted in rendered
+    ]
+    return {
+        "answer": render_claims(rendered),
+        "answer_claims": claim_dicts,
+        "citation_report": checks,
+        "abstained": False,
+    }

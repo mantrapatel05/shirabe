@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from operator import add
-from typing import Annotated
+from typing import Annotated, Any
 
 from typing_extensions import TypedDict
 
@@ -17,6 +17,7 @@ class AgentState(TypedDict):
     evidence_records: Annotated[list[EvidenceRecord], add]
     analysis: str
     answer: str
+    answer_claims: list[dict[str, Any]]
     citation_report: list[CitationCheck]
     abstained: bool
     iteration: int

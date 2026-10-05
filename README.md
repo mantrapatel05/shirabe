@@ -69,6 +69,37 @@ python main.py
 
 The repository must be public and hosted on GitHub. Each run clones it into a temporary directory, then plans searches, gathers evidence, and prints an answer. Temporary clones are always cleaned up, even on failure.
 
+## Demo (no key required)
+
+```bash
+python demo.py
+python demo.py --save-report demo-report.json
+```
+
+The demo runs a multi-file investigation and an abstention case against the
+miniature fixtures with canned model claims, so it works with no Groq key,
+no network, and no tracing credentials. It prints the evidence trail,
+citation-integrity findings, and the release's known retrieval limitation.
+
+## Investigation reports
+
+Reports are versioned JSON (`report_version: v1`) with the question,
+repository label and snapshot, answer, structured claims, bounded evidence
+excerpts, citation-check outcomes, run limits, and run provenance. Saving is
+always explicit and reports never contain secrets, full repository contents,
+raw prompts, or tracing data:
+
+```bash
+python main.py "https://github.com/psf/requests" "How is X built?" --save-report report.json
+python main.py --inspect-report report.json
+python main.py --attach-review report.json --labels 1,1,0
+python main.py --delete-report report.json
+```
+
+Human claim-support labels are opt-in (one boolean per saved claim),
+inspectable, and deletable with the same file. Promoting a reviewed example
+into the benchmark requires provenance, licensing, and privacy checks first.
+
 ## How the current implementation works
 
 1. **Planner:** asks the model for 3–5 plain-keyword search queries.
@@ -94,6 +125,27 @@ Repository cloning is shallow and has a configurable timeout (default 120 s). Re
 | `eval_cases.py` | Versioned benchmark cases over miniature fixtures (dataset v1) |
 | `eval_metrics.py` | Metric definitions with explicit denominators |
 | `tests/` | Deterministic tests; they need no network, model key, or tracing credentials |
+| `demo.py` | No-key fixture demo: evidence trail, citation checks, abstention case |
+| `report.py` | Versioned report export with opt-in review labels |
+
+## Architecture
+
+## Architecture
+
+```text
+main.py / demo.py ──→ graph.py ──→ nodes.py ──→ tools.py (read-only checkout)
+                         │              ├── evidence.py (records, claim parsing, citation checks)
+                         │              └── report.py (versioned export, opt-in review labels)
+                         └── state.py (shared investigation state)
+config.py + errors.py bound and sanitize every layer; evaluate.py +
+eval_cases.py + eval_metrics.py measure retrieval and answer quality.
+```
+
+Shirabe only reads source: it clones (shallow), searches, and reads bounded
+ranges. It never executes repository code, never opens shells against the
+checkout, and never mutates anything outside its own temp directory.
+Repository text is treated as untrusted data in every prompt, and source
+text that reads like instructions cannot change the tool set.
 
 ## Configuration
 
@@ -140,6 +192,28 @@ stays lexical for this release; a narrow symbol/import expansion is the
 candidate to judge on this dataset next. Fixture numbers are regression
 signals, not general accuracy claims.
 
+## Known failures
+
+- Malformed model output (bad planner JSON, non-claim explainer JSON) fails
+  the run with a short provider error instead of a guessed answer.
+- Model citations that do not resolve to supplied evidence are rejected and
+  reported; answers keep only validated citations.
+- Empty evidence abstains explicitly; the unanswerable benchmark case guards
+  this path in CI.
+- Oversized repositories, clone timeouts, and non-GitHub URLs fail fast
+  with actionable messages; temp clones are always cleaned up.
+- Supported languages are lexical-only: retrieval matches plain keywords in
+  configured text extensions and never implies complete static analysis.
+
+## Tracing privacy
+
+LangSmith tracing is optional and disabled by default
+(`LANGSMITH_TRACING=false`). When enabled, traces may contain your question,
+planned queries, and repository excerpts sent to the model. Saved
+investigation reports never include traces, prompts, secrets, or full
+repository contents — only bounded evidence excerpts, validation outcomes,
+and run metadata. The fixture demo and benchmark never enable tracing.
+
 ## Development
 
 Install dev dependencies and run the full check suite:
@@ -148,7 +222,7 @@ Install dev dependencies and run the full check suite:
 pip install -r requirements-dev.txt
 pytest
 ruff check .
-mypy config.py errors.py tools.py nodes.py main.py graph.py state.py evaluate.py evidence.py eval_cases.py eval_metrics.py
+mypy config.py errors.py tools.py nodes.py main.py graph.py state.py evaluate.py evidence.py eval_cases.py eval_metrics.py report.py demo.py
 pip-audit -r requirements.txt
 ```
 
@@ -157,3 +231,8 @@ model client, the temp clone, and the graph invocation, and the deterministic
 benchmark (`python evaluate.py --mode fixture`) runs without a model key.
 The same steps run in CI (`.github/workflows/ci.yml`) on every push and
 pull request.
+
+## License
+
+MIT — see `LICENSE`. Evaluation fixtures under `tests/fixtures/` are
+original miniature examples released under the same license.

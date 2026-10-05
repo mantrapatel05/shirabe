@@ -90,6 +90,7 @@ def base_state(case: EvalCase) -> AgentState:
         "evidence_records": [],
         "analysis": "",
         "answer": "",
+        "answer_claims": [],
         "citation_report": [],
         "abstained": False,
         "iteration": 0,
@@ -104,6 +105,21 @@ def canned_claims_payload(records: list) -> str:
         for record in records
     ]
     return json.dumps({"claims": claims})
+
+
+def explain_with_mocked_claims(state: AgentState, records: list) -> dict:
+    """Run the real explainer with canned claims built from collected records.
+
+    Shared by the fixture benchmark and the no-key demo: no model call, but
+    the production parse/validate/render path is exercised.
+    """
+    payload = canned_claims_payload(records)
+    original = nodes_module._invoke
+    nodes_module._invoke = lambda prompt: payload  # noqa: E731
+    try:
+        return explain_node(state)
+    finally:
+        nodes_module._invoke = original
 
 
 def adversarial_probe(records: list) -> list[AnswerClaim]:
@@ -159,13 +175,7 @@ def run_fixture_evaluation() -> dict:
                 outcomes.append((True, True))
                 integrity = citation_integrity_score(0, 0)
             else:
-                payload = canned_claims_payload(records)
-                original = nodes_module._invoke
-                nodes_module._invoke = lambda prompt: payload  # noqa: E731
-                try:
-                    result = explain_node({**state, **investigated})
-                finally:
-                    nodes_module._invoke = original
+                result = explain_with_mocked_claims({**state, **investigated}, records)
                 outcomes.append((True, result["abstained"]))
                 if result["abstained"]:
                     failures.append(f"{case.case_id}: answerable case abstained")

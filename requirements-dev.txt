@@ -1,5 +1,5 @@
 -r requirements.txt
-pytest
-ruff
-mypy
-pip-audit
+pytest>=8.3.2
+ruff>=0.16.5
+mypy>=2.3.1
+pip-audit>=2.10.1
