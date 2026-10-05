@@ -90,7 +90,9 @@ Repository cloning is shallow and has a configurable timeout (default 120 s). Re
 | `config.py` | Centralized environment configuration loading and validation |
 | `errors.py` | Exception hierarchy for user-facing errors |
 | `evidence.py` | Typed evidence records, claim parsing, and citation-integrity checks |
-| `evaluate.py` | Early evaluation scaffold (v0.3) |
+| `evaluate.py` | Reproducible benchmark runner (fixture and live modes) |
+| `eval_cases.py` | Versioned benchmark cases over miniature fixtures (dataset v1) |
+| `eval_metrics.py` | Metric definitions with explicit denominators |
 | `tests/` | Deterministic tests; they need no network, model key, or tracing credentials |
 
 ## Configuration
@@ -109,6 +111,35 @@ Repository cloning is shallow and has a configurable timeout (default 120 s). Re
 | `SHIRABE_MAX_FILE_BYTES` | Max size of a single file to search | `500000` |
 | `SHIRABE_MAX_EVIDENCE_CHARS` | Max evidence chars sent to analyzer | `30000` |
 
+## Evaluation
+
+`python evaluate.py --mode fixture` runs 6 versioned cases (dataset v1) over
+original miniature fixtures in `tests/fixtures/` — single-file and
+cross-file behavior, configuration, a failure path, and one unanswerable
+question. It uses real retrieval with pinned queries and mocked model
+outputs, so it reproduces without credentials and runs in CI. Live-model
+evaluation is opt-in: `python evaluate.py --mode live` needs `GROQ_API_KEY`
+and records dataset revision, model/provider, settings, and timestamp.
+
+Each metric reports its numerator and denominator; claim support needs human
+labels and is reported as unlabeled (never zero) until reviewed. Latest
+fixture run:
+
+| Metric | Result |
+|---|---|
+| Retrieval file recall@5 | 8/9 |
+| Retrieval range recall | 9/11 |
+| Citation integrity | 18/18 |
+| Abstention precision / recall | 1/1, 1/1 |
+| Claim support | unlabeled |
+
+Known gaps (`calc-single`, `flow-control`; analysis in
+`tests/fixtures/README.md`): relevant code reachable only through a
+same-file symbol or an import edge is missed by lexical retrieval. Retrieval
+stays lexical for this release; a narrow symbol/import expansion is the
+candidate to judge on this dataset next. Fixture numbers are regression
+signals, not general accuracy claims.
+
 ## Development
 
 Install dev dependencies and run the full check suite:
@@ -117,10 +148,12 @@ Install dev dependencies and run the full check suite:
 pip install -r requirements-dev.txt
 pytest
 ruff check .
-mypy config.py errors.py tools.py nodes.py main.py graph.py state.py evaluate.py
+mypy config.py errors.py tools.py nodes.py main.py graph.py state.py evaluate.py evidence.py eval_cases.py eval_metrics.py
 pip-audit -r requirements.txt
 ```
 
 These checks need no `GROQ_API_KEY` or LangSmith credentials: tests mock the
-model client, the temp clone, and the graph invocation. The same steps run in
-CI (`.github/workflows/ci.yml`) on every push and pull request.
+model client, the temp clone, and the graph invocation, and the deterministic
+benchmark (`python evaluate.py --mode fixture`) runs without a model key.
+The same steps run in CI (`.github/workflows/ci.yml`) on every push and
+pull request.
