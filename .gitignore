@@ -12,3 +12,4 @@ shirabe_*/
 reposage_*/
 logs/
 docs/
+*.egg-info/

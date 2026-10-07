@@ -4,6 +4,16 @@ version = "1.0.0"
 description = "Evidence-first codebase investigator: answer engineering questions with validated source citations"
 requires-python = ">=3.11"
 
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+shirabe = "main:main"
+
+[tool.setuptools]
+py-modules = ["main", "config", "demo", "errors", "evaluate", "eval_cases", "eval_metrics", "evidence", "graph", "nodes", "report", "state", "tools"]
+
 [tool.ruff]
 line-length = 110
 target-version = "py311"
