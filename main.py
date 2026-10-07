@@ -14,6 +14,30 @@ from graph import app
 from report import attach_review, build_investigation_report, delete_report, inspect_report, save_report
 from tools import check_repo_budget, cleanup_repository, clone_repository
 
+import questionary
+from questionary import Style
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+
+console = Console()
+
+SHIRABE_BANNER = """[bold #F8FAFC]
+  ██████╗ ██╗  ██╗██╗██████╗  █████╗ ██████╗ ███████╗
+ ██╔════╝ ██║  ██║██║██╔══██╗██╔══██╗██╔══██╗██╔════╝
+ ███████╗ ███████║██║██████╔╝███████║██████╔╝█████╗  
+ ╚════██║ ██╔══██║██║██╔══██╗██╔══██║██╔══██╗██╔══╝  
+ ███████║ ██║  ██║██║██║  ██║██║  ██║██████╔╝███████╗
+ ╚══════╝ ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝[/bold #F8FAFC]
+ [#94A3B8]v1.0.0 | Autonomous Codebase Investigator[/#94A3B8]
+"""
+
+cli_style = Style([
+    ('qmark', 'fg:#38BDF8 bold'),
+    ('question', 'fg:#F8FAFC bold'),
+    ('answer', 'fg:#38BDF8 bold'),
+])
+
 
 def _report_command(action: str, path: str | None, labels: str | None) -> int:
     if not path:
@@ -123,22 +147,38 @@ def main() -> int:
         os.environ["LANGSMITH_API_KEY"] = settings.langsmith_api_key
         os.environ["LANGSMITH_PROJECT"] = settings.langsmith_project
 
-    repo_url = args.repo_url or input("GitHub repository URL: ").strip()
-    question = args.question or input("Engineering question: ").strip()
+    is_interactive = not args.repo_url or not args.question
+    if is_interactive and not any([args.inspect_report, args.delete_report, args.attach_review]):
+        console.print(SHIRABE_BANNER)
+        repo_url = args.repo_url or questionary.text("Repository URL:", qmark="▶", style=cli_style).ask()
+        if not repo_url:
+            console.print("[#EF4444]A repository URL and a question are both required.[/#EF4444]")
+            return 1
+        repo_url = repo_url.strip()
+        
+        question = args.question or questionary.text("Engineering Question:", qmark="▶", style=cli_style).ask()
+        if not question:
+            console.print("[#EF4444]A repository URL and a question are both required.[/#EF4444]")
+            return 1
+        question = question.strip()
+    else:
+        repo_url = (args.repo_url or "").strip()
+        question = (args.question or "").strip()
+
     if not repo_url or not question:
-        print("A repository URL and a question are both required.", file=sys.stderr)
+        console.print("[#EF4444]A repository URL and a question are both required.[/#EF4444]")
         return 1
 
     repo_path: str | None = None
     try:
-        print("\n[1/2] Loading repository...")
-        repo_path = clone_repository(repo_url, timeout_seconds=settings.clone_timeout_seconds)
-        check_repo_budget(repo_path, settings.max_repo_files, settings.max_repo_total_bytes)
+        with console.status("[bold #E2E8F0]Loading repository...", spinner="line", spinner_style="bold #38BDF8"):
+            repo_path = clone_repository(repo_url, timeout_seconds=settings.clone_timeout_seconds)
+            check_repo_budget(repo_path, settings.max_repo_files, settings.max_repo_total_bytes)
 
-        print("[2/2] Running investigation...\n")
-        started = time.perf_counter()
-        result = app.invoke(
-            {
+        with console.status("[bold #E2E8F0]Running investigation (this may take a minute)...", spinner="line", spinner_style="bold #38BDF8"):
+            started = time.perf_counter()
+            result = app.invoke(
+                {
                 "repo_url": repo_url,
                 "repo_path": repo_path,
                 "question": question,
@@ -156,20 +196,27 @@ def main() -> int:
                 "needs_more_evidence": False,
             }
         )
-        print("\n" + "=" * 80)
-        print(result["answer"])
-        print("=" * 80)
+        console.print("\n")
+        console.print(Panel(Markdown(result["answer"]), title="[bold #F8FAFC]REPORT[/bold #F8FAFC]", title_align="left", border_style="#475569", padding=(1, 2)))
+        
         records = result.get("evidence_records", [])
         if records:
             snapshot = records[0].snapshot_id or "unknown"
-            print(f"\nEvidence: {len(records)} ranges (snapshot {snapshot})")
+            console.print(f"[#94A3B8]Evidence: {len(records)} ranges (snapshot {snapshot})[/#94A3B8]")
+            
         checks = result.get("citation_report", [])
         if checks:
-            print("Citation integrity:")
+            console.print("\n[bold #E2E8F0]Citation integrity:[/bold #E2E8F0]")
             for line in summarize_checks(checks):
-                print(f"  {line}")
+                if "supported" in line:
+                    console.print(f"  [#10B981]✓[/#10B981] [#E2E8F0]{line}[/#E2E8F0]")
+                elif "rejected" in line:
+                    console.print(f"  [#EF4444]✗[/#EF4444] [#E2E8F0]{line}[/#E2E8F0]")
+                else:
+                    console.print(f"  [#E2E8F0]{line}[/#E2E8F0]")
+                    
         if result.get("abstained"):
-            print("Shirabe abstained: the checkout did not contain enough evidence.")
+            console.print("\n[#F59E0B]Shirabe abstained: the checkout did not contain enough evidence.[/#F59E0B]")
         if args.save_report:
             return save_investigation_report(
                 args.save_report,

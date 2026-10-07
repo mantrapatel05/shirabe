@@ -17,12 +17,18 @@ def test_main_requires_repo_url_and_question(monkeypatch, capsys):
     monkeypatch.setenv("GROQ_API_KEY", "test-key")
     monkeypatch.setattr(main_module, "load_dotenv", lambda *a, **k: None)
     monkeypatch.setattr("sys.argv", ["main.py", "", ""])
-    monkeypatch.setattr("builtins.input", lambda *_: "")
+    
+    class MockQuestionaryText:
+        def __init__(self, *a, **k): pass
+        def ask(self): return ""
+        
+    monkeypatch.setattr(main_module.questionary, "text", MockQuestionaryText)
 
     exit_code = main_module.main()
 
     assert exit_code == 1
-    assert "required" in capsys.readouterr().err.lower()
+    output = capsys.readouterr()
+    assert "required" in output.out.lower() or "required" in output.err.lower()
 
 
 def test_main_surfaces_clone_failure_without_traceback(monkeypatch, capsys):
