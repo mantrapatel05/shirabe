@@ -157,7 +157,7 @@ def test_tracing_disabled_when_nothing_set(monkeypatch):
 def test_fixture_eval_forces_tracing_off_without_keys(monkeypatch):
     monkeypatch.setenv("LANGSMITH_TRACING", "true")
     monkeypatch.setenv("LANGCHAIN_TRACING_V2", "true")
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("LANGSMITH_API_KEY", raising=False)
     report = evaluate_module.run_fixture_evaluation()
     assert report["failures"] == []
@@ -166,7 +166,7 @@ def test_fixture_eval_forces_tracing_off_without_keys(monkeypatch):
 
 def test_demo_forces_tracing_off_without_keys(monkeypatch, capsys):
     monkeypatch.setenv("LANGSMITH_TRACING", "true")
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("LANGSMITH_API_KEY", raising=False)
     assert demo_module.main([]) == 0
     assert "Evidence trail" in capsys.readouterr().out
@@ -174,7 +174,7 @@ def test_demo_forces_tracing_off_without_keys(monkeypatch, capsys):
 
 
 def test_tracing_without_key_is_a_config_error(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("LANGSMITH_TRACING", "true")
     monkeypatch.delenv("LANGSMITH_API_KEY", raising=False)
     with pytest.raises(ConfigError, match="LANGSMITH_API_KEY"):
@@ -182,7 +182,7 @@ def test_tracing_without_key_is_a_config_error(monkeypatch):
 
 
 def test_tracing_settings_load_with_key(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("LANGSMITH_TRACING", "true")
     monkeypatch.setenv("LANGSMITH_API_KEY", "trace-key-123")
     settings = load_settings()
@@ -198,7 +198,7 @@ def test_main_enables_tracing_explicitly(monkeypatch, tmp_path):
     fake_root = tmp_path / "shirabe_trace1"
     fake_repo = fake_root / "repo"
     fake_repo.mkdir(parents=True)
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("LANGSMITH_TRACING", "true")
     monkeypatch.setenv("LANGSMITH_API_KEY", "trace-key-123")
     monkeypatch.delenv("LANGSMITH_PROJECT", raising=False)

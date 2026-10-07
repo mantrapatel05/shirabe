@@ -3,18 +3,18 @@ from errors import RepositoryError
 
 
 def test_main_fails_cleanly_without_api_key(monkeypatch, capsys):
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.setattr(main_module, "load_dotenv", lambda *a, **k: None)
     monkeypatch.setattr("sys.argv", ["main.py", "https://github.com/psf/requests", "a question"])
 
     exit_code = main_module.main()
 
     assert exit_code == 1
-    assert "GROQ_API_KEY" in capsys.readouterr().err
+    assert "OPENROUTER_API_KEY" in capsys.readouterr().err
 
 
 def test_main_requires_repo_url_and_question(monkeypatch, capsys):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setattr(main_module, "load_dotenv", lambda *a, **k: None)
     monkeypatch.setattr("sys.argv", ["main.py", "", ""])
     
@@ -32,7 +32,7 @@ def test_main_requires_repo_url_and_question(monkeypatch, capsys):
 
 
 def test_main_surfaces_clone_failure_without_traceback(monkeypatch, capsys):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setattr(main_module, "load_dotenv", lambda *a, **k: None)
     monkeypatch.setattr("sys.argv", ["main.py", "https://github.com/psf/requests", "a question"])
 
@@ -52,7 +52,7 @@ def test_main_cleans_up_temp_repo_after_success(monkeypatch, tmp_path):
     fake_repo = fake_root / "repo"
     fake_repo.mkdir(parents=True)
 
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setattr(main_module, "load_dotenv", lambda *a, **k: None)
     monkeypatch.setattr("sys.argv", ["main.py", "https://github.com/psf/requests", "a question"])
     monkeypatch.setattr(main_module, "clone_repository", lambda url, timeout_seconds=120: str(fake_repo))
@@ -70,7 +70,7 @@ def test_main_cleans_up_temp_repo_after_budget_failure(monkeypatch, tmp_path):
     fake_repo = fake_root / "repo"
     fake_repo.mkdir(parents=True)
 
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setattr(main_module, "load_dotenv", lambda *a, **k: None)
     monkeypatch.setattr("sys.argv", ["main.py", "https://github.com/psf/requests", "a question"])
     monkeypatch.setattr(main_module, "clone_repository", lambda url, timeout_seconds=120: str(fake_repo))

@@ -1,6 +1,6 @@
 """Centralized configuration loading and validation.
 
-Nothing in this module ever prints or logs `groq_api_key`. `Settings.__repr__`
+Nothing in this module ever prints or logs `openrouter_api_key`. `Settings.__repr__`
 deliberately omits it (see the `repr=False` field metadata below) so that an
 accidental `print(settings)` or an error message built from `repr(settings)`
 never leaks the key.
@@ -46,8 +46,8 @@ def _bool_env(name: str, default: bool) -> bool:
 
 @dataclass(frozen=True)
 class Settings:
-    groq_api_key: str = field(repr=False)
-    groq_model: str
+    openrouter_api_key: str = field(repr=False)
+    openrouter_model: str
     langsmith_tracing: bool
     langsmith_api_key: str = field(repr=False)
     langsmith_project: str
@@ -86,10 +86,10 @@ def load_settings(require_api_key: bool = True) -> Settings:
     Raises ConfigError with a short, actionable message (never the value of
     any secret) if required configuration is missing or malformed.
     """
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
     if require_api_key and not api_key:
         raise ConfigError(
-            "GROQ_API_KEY is not configured. Copy .env.example to .env and "
+            "OPENROUTER_API_KEY is not configured. Copy .env.example to .env and "
             "set your key."
         )
 
@@ -102,8 +102,8 @@ def load_settings(require_api_key: bool = True) -> Settings:
         )
 
     return Settings(
-        groq_api_key=api_key,
-        groq_model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b").strip(),
+        openrouter_api_key=api_key,
+        openrouter_model=os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3.5-lightning:free").strip(),
         langsmith_tracing=tracing,
         langsmith_api_key=tracing_key,
         langsmith_project=os.getenv("LANGSMITH_PROJECT", "shirabe").strip(),

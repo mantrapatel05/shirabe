@@ -22,7 +22,7 @@ DEFAULT_CLONE_TIMEOUT_SECONDS = 120
 TEMP_DIR_PREFIX = "shirabe_"
 
 
-def _validate_github_url(repo_url: str) -> None:
+def _validate_github_url(repo_url: str) -> str:
     parsed = urlparse(repo_url)
 
     if parsed.scheme not in {"http", "https"}:
@@ -31,8 +31,14 @@ def _validate_github_url(repo_url: str) -> None:
     if parsed.netloc.lower() not in {"github.com", "www.github.com"}:
         raise RepositoryError("Shirabe currently supports only github.com URLs.")
 
-    if not re.match(r"^/[^/]+/[^/]+/?$", parsed.path):
+    match = re.match(r"^/([^/]+)/([^/]+)", parsed.path)
+    if not match:
         raise RepositoryError("Expected a URL of the form https://github.com/owner/repository")
+    
+    owner, repo = match.groups()
+    if repo.endswith(".git"):
+        repo = repo[:-4]
+    return f"https://github.com/{owner}/{repo}"
 
 
 def clone_repository(repo_url: str, timeout_seconds: int = DEFAULT_CLONE_TIMEOUT_SECONDS) -> str:
@@ -43,7 +49,7 @@ def clone_repository(repo_url: str, timeout_seconds: int = DEFAULT_CLONE_TIMEOUT
     removed before the error propagates. On success, the caller is
     responsible for calling cleanup_repository() when done.
     """
-    _validate_github_url(repo_url)
+    repo_url = _validate_github_url(repo_url)
 
     temp_dir = tempfile.mkdtemp(prefix=TEMP_DIR_PREFIX)
     destination = os.path.join(temp_dir, "repo")

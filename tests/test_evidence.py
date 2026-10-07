@@ -368,7 +368,7 @@ def test_main_prints_citation_integrity(monkeypatch, tmp_path, capsys):
     fake_repo = fake_root / "repo"
     fake_repo.mkdir(parents=True)
 
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setattr(main_module, "load_dotenv", lambda *a, **k: None)
     monkeypatch.setattr("sys.argv", ["main.py", "https://github.com/o/r", "a question"])
     monkeypatch.setattr(

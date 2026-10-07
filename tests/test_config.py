@@ -5,21 +5,21 @@ from errors import ConfigError
 
 
 def test_missing_api_key_raises_config_error(monkeypatch):
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    with pytest.raises(ConfigError, match="GROQ_API_KEY"):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    with pytest.raises(ConfigError, match="OPENROUTER_API_KEY"):
         load_settings()
 
 
 def test_api_key_not_required_mode(monkeypatch):
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     settings = load_settings(require_api_key=False)
-    assert settings.groq_api_key == ""
+    assert settings.openrouter_api_key == ""
 
 
 def test_defaults_are_applied(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     for var in [
-        "GROQ_MODEL", "LANGSMITH_TRACING", "LANGSMITH_API_KEY", "LANGSMITH_PROJECT",
+        "OPENROUTER_MODEL", "LANGSMITH_TRACING", "LANGSMITH_API_KEY", "LANGSMITH_PROJECT",
         "SHIRABE_MAX_ITERATIONS",
         "SHIRABE_CLONE_TIMEOUT_SECONDS", "SHIRABE_MAX_REPO_FILES",
         "SHIRABE_MAX_REPO_TOTAL_BYTES", "SHIRABE_MAX_FILE_BYTES",
@@ -28,7 +28,7 @@ def test_defaults_are_applied(monkeypatch):
         monkeypatch.delenv(var, raising=False)
 
     settings = load_settings()
-    assert settings.groq_model == "openai/gpt-oss-120b"
+    assert settings.openrouter_model == "nvidia/nemotron-3.5-lightning:free"
     assert settings.langsmith_tracing is False
     assert settings.langsmith_api_key == ""
     assert settings.langsmith_project == "shirabe"
@@ -41,28 +41,28 @@ def test_defaults_are_applied(monkeypatch):
 
 
 def test_custom_int_env(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("SHIRABE_MAX_ITERATIONS", "5")
     settings = load_settings()
     assert settings.max_iterations == 5
 
 
 def test_invalid_int_env_raises(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("SHIRABE_MAX_ITERATIONS", "not_a_number")
     with pytest.raises(ConfigError, match="must be an integer"):
         load_settings()
 
 
 def test_non_positive_int_env_raises(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("SHIRABE_MAX_ITERATIONS", "0")
     with pytest.raises(ConfigError, match="must be a positive integer"):
         load_settings()
 
 
 def test_bool_parsing(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("LANGSMITH_API_KEY", "trace-key")
 
     for truthy in ["1", "true", "True", "YES", "on"]:
@@ -75,7 +75,7 @@ def test_bool_parsing(monkeypatch):
 
 
 def test_tracing_without_key_raises_config_error(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("LANGSMITH_TRACING", "true")
     monkeypatch.delenv("LANGSMITH_API_KEY", raising=False)
     with pytest.raises(ConfigError, match="LANGSMITH_API_KEY"):
@@ -83,7 +83,7 @@ def test_tracing_without_key_raises_config_error(monkeypatch):
 
 
 def test_langsmith_key_never_leaks_in_repr(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("LANGSMITH_TRACING", "true")
     monkeypatch.setenv("LANGSMITH_API_KEY", "trace-secret-789")
     settings = load_settings()
@@ -92,7 +92,7 @@ def test_langsmith_key_never_leaks_in_repr(monkeypatch):
 
 
 def test_repr_and_str_never_contain_api_key(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "super-secret-key-12345")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "super-secret-key-12345")
     settings = load_settings()
     assert "super-secret-key-12345" not in repr(settings)
     assert "super-secret-key-12345" not in str(settings)

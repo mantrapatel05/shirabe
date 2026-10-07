@@ -31,6 +31,8 @@ def _fake_process_error(cmd, **kwargs):
         "http://github.com/psf/requests",
         "https://www.github.com/psf/requests",
         "https://github.com/psf/requests.git",
+        "https://github.com/psf/requests/tree/main",
+        "https://github.com/psf/requests/blob/main/backend/server.js",
     ],
 )
 def test_accepted_url_forms(url, monkeypatch):
@@ -49,7 +51,6 @@ def test_accepted_url_forms(url, monkeypatch):
         "ftp://github.com/psf/requests",
         "https://gitlab.com/psf/requests",
         "https://github.com/psf",
-        "https://github.com/psf/requests/tree/main",
         "https://github.com/",
         "not a url",
         "",

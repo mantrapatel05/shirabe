@@ -118,9 +118,9 @@ def test_fixture_cli_exits_zero(monkeypatch, capsys):
 
 
 def test_live_mode_needs_api_key(monkeypatch):
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     try:
         evaluate_module.run_live_evaluation()
     except ConfigError:
         return
-    raise AssertionError("live evaluation must require GROQ_API_KEY")
+    raise AssertionError("live evaluation must require OPENROUTER_API_KEY")

@@ -18,11 +18,11 @@ Analyze evidence ────┘
 Explain with file and line references
 ```
 
-Shirabe uses **Python**, **LangGraph**, **ChatGroq**, and optionally **LangSmith** for tracing.
+Shirabe uses **Python**, **LangGraph**, **ChatOpenAI**, and optionally **LangSmith** for tracing.
 
 ## Quickstart
 
-You need Python 3.11 or newer, Git, and a Groq API key.
+You need Python 3.11 or newer, Git, and a OpenRouter API key.
 
 Create and activate a virtual environment, then install the dependencies:
 
@@ -45,8 +45,8 @@ cp .env.example .env
 Add your key to `.env`:
 
 ```env
-GROQ_API_KEY=your_groq_api_key
-GROQ_MODEL=openai/gpt-oss-120b
+OPENROUTER_API_KEY=your_openrouter_api_key
+OPENROUTER_MODEL=nvidia/nemotron-3.5-lightning:free
 ```
 
 LangSmith tracing is optional and disabled by default. To enable it, set `LANGSMITH_TRACING=true` in `.env` and add your LangSmith key. Traces may contain your question and repository excerpts.
@@ -77,7 +77,7 @@ python demo.py --save-report demo-report.json
 ```
 
 The demo runs a multi-file investigation and an abstention case against the
-miniature fixtures with canned model claims, so it works with no Groq key,
+miniature fixtures with canned model claims, so it works with no OpenRouter key,
 no network, and no tracing credentials. It prints the evidence trail,
 citation-integrity findings, and the release's known retrieval limitation.
 
@@ -149,8 +149,8 @@ text that reads like instructions cannot change the tool set.
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `GROQ_API_KEY` | Required API key for model calls | — |
-| `GROQ_MODEL` | Model name | `openai/gpt-oss-120b` |
+| `OPENROUTER_API_KEY` | Required API key for model calls | — |
+| `OPENROUTER_MODEL` | Model name | `nvidia/nemotron-3.5-lightning:free` |
 | `LANGSMITH_TRACING` | Enable LangSmith tracing | `false` |
 | `LANGSMITH_API_KEY` | Required only when tracing is enabled | — |
 | `LANGSMITH_PROJECT` | LangSmith project name | `shirabe` |
@@ -168,7 +168,7 @@ original miniature fixtures in `tests/fixtures/` — single-file and
 cross-file behavior, configuration, a failure path, and one unanswerable
 question. It uses real retrieval with pinned queries and mocked model
 outputs, so it reproduces without credentials and runs in CI. Live-model
-evaluation is opt-in: `python evaluate.py --mode live` needs `GROQ_API_KEY`
+evaluation is opt-in: `python evaluate.py --mode live` needs `OPENROUTER_API_KEY`
 and records dataset revision, model/provider, settings, and timestamp.
 
 Each metric reports its numerator and denominator; claim support needs human
@@ -230,7 +230,7 @@ mypy config.py errors.py tools.py nodes.py main.py graph.py state.py evaluate.py
 pip-audit -r requirements.txt
 ```
 
-These checks need no `GROQ_API_KEY` or LangSmith credentials: tests mock the
+These checks need no `OPENROUTER_API_KEY` or LangSmith credentials: tests mock the
 model client, the temp clone, and the graph invocation, and the deterministic
 benchmark (`python evaluate.py --mode fixture`) runs without a model key.
 The same steps run in CI (`.github/workflows/ci.yml`) on every push and

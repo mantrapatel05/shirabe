@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 
 from config import load_settings
 from errors import ProviderError
@@ -36,13 +36,18 @@ def _invoke(prompt: str) -> str:
     the message is ever shown to the user.
     """
     settings = load_settings()
-    model = ChatGroq(model=settings.groq_model, temperature=0)
+    model = ChatOpenAI(
+        model=settings.openrouter_model,
+        temperature=0,
+        api_key=settings.openrouter_api_key,
+        base_url="https://openrouter.ai/api/v1",
+    )
     try:
         response = model.invoke(prompt)
     except Exception as exc:
         message = str(exc)
-        if settings.groq_api_key:
-            message = message.replace(settings.groq_api_key, "[REDACTED]")
+        if settings.openrouter_api_key:
+            message = message.replace(settings.openrouter_api_key, "[REDACTED]")
         raise ProviderError(f"Model provider call failed: {message}") from None
     return _text(response)
 

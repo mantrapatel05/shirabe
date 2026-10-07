@@ -72,10 +72,10 @@ def test_report_schema_has_fixed_keys():
 
 
 def test_report_contains_no_secrets_or_traces(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "sk-secret-groq-123")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-secret-openrouter-123")
     monkeypatch.setenv("LANGSMITH_API_KEY", "sk-secret-langsmith-456")
     dumped = json.dumps(_report())
-    assert "sk-secret-groq-123" not in dumped
+    assert "sk-secret-openrouter-123" not in dumped
     assert "sk-secret-langsmith-456" not in dumped
     assert "prompt" not in _report()
     assert "trace" not in _report()
@@ -184,7 +184,7 @@ def _mock_success(monkeypatch, tmp_path, answer_claims=True):
     fake_root = tmp_path / "shirabe_report1"
     fake_repo = fake_root / "repo"
     fake_repo.mkdir(parents=True)
-    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setattr(main_module, "load_dotenv", lambda *a, **k: None)
     monkeypatch.setattr(main_module, "clone_repository", lambda url, timeout_seconds=120: str(fake_repo))
     monkeypatch.setattr(main_module, "check_repo_budget", lambda *a, **k: None)
@@ -223,7 +223,7 @@ def test_main_save_report(monkeypatch, tmp_path):
     assert main_module.main() == 0
     loaded = load_report(out)
     assert loaded["report_version"] == "v1"
-    assert loaded["run"]["provider"] == "groq"
+    assert loaded["run"]["provider"] == "openrouter"
     assert loaded["claims"][0]["text"] == "It works."
 
 
@@ -251,7 +251,7 @@ def test_main_report_commands(monkeypatch, tmp_path, capsys):
 
 
 def test_demo_runs_without_key(monkeypatch, capsys):
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("LANGSMITH_API_KEY", raising=False)
     assert demo_module.main([]) == 0
     out = capsys.readouterr().out
@@ -261,7 +261,7 @@ def test_demo_runs_without_key(monkeypatch, capsys):
 
 
 def test_demo_save_report_is_loadable(monkeypatch, tmp_path, capsys):
-    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     out = str(tmp_path / "demo.json")
     assert demo_module.main(["--save-report", out]) == 0
     assert f"Saved investigation report: {out}" in capsys.readouterr().out

@@ -97,8 +97,8 @@ def save_investigation_report(
                 "max_file_bytes": settings.max_file_bytes,
                 "max_evidence_chars": settings.max_evidence_chars,
             },
-            model=settings.groq_model,
-            provider="groq",
+            model=settings.openrouter_model,
+            provider="openrouter",
             elapsed_s=time.perf_counter() - started,
         )
         saved = save_report(report, path)
