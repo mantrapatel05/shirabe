@@ -25,14 +25,14 @@ labels fail CI instead of silently rotting.
 
 ## Edge cases in the labels
 
-- `flow-control` labels `models.py:12-16`, which shares **no keyword** with
+- `flow-control` labels `models.py:11-15`, which shares **no keyword** with
   the case queries. It is reachable only through the `service.py` import.
   Lexical retrieval is expected to miss it (see gap analysis below).
 - `flow-data` targets the same file through different keywords and is
   expected to pass: the pair shows retrieval succeeding or failing on
   wording, not on fixture size.
-- `shop-config` labels a single line (`config.py:5`); range-overlap scoring
-  treats any retrieved range covering line 5 as a hit.
+- `shop-config` labels a single line (`config.py:4`); range-overlap scoring
+  treats any retrieved range covering line 4 as a hit.
 - `auth-unanswerable` has no relevant ranges by construction. Any retrieved
   range or any answered claim for it is a benchmark failure.
 - Fixture mode bypasses the planner: case queries stand in for planner
@@ -48,7 +48,7 @@ Full fixture run: file recall 8/9, range recall 9/11 at k=5. Two cases miss:
   queries lexically reaches it. The missing file is exactly one deterministic
   import edge away (`service.py` imports `models.py`).
 - `calc-single` scores range recall 1/2: the `total()` definition and body
-  are retrieved, but the `add()` helper definition (`calc.py:5-7`) is not.
+  are retrieved, but the `add()` helper definition (`calc.py:4-6`) is not.
   The queries match the call site (`result = add(result, value)`), never the
   `def add` lines in the same file.
 

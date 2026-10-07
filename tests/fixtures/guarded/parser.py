@@ -1,4 +1,3 @@
-# Miniature fixture for Shirabe evaluation (original example, MIT, see ../README.md).
 """Number parser with one explicit failure path."""
 
 

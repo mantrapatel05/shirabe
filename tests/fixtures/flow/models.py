@@ -1,4 +1,3 @@
-# Miniature fixture for Shirabe evaluation (original example, MIT, see ../README.md).
 """Domain models: discount rules per customer tier."""
 
 

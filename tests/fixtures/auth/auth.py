@@ -1,4 +1,3 @@
-# Miniature fixture for Shirabe evaluation (original example, MIT, see ../README.md).
 """Token check: validates a bearer token against a fixed allowlist."""
 
 

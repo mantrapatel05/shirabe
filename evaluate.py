@@ -116,7 +116,11 @@ def explain_with_mocked_claims(state: AgentState, records: list) -> dict:
     """
     payload = canned_claims_payload(records)
     original = nodes_module._invoke
-    nodes_module._invoke = lambda prompt: payload  # noqa: E731
+
+    def canned_invoke(prompt: str) -> str:
+        return payload
+
+    nodes_module._invoke = canned_invoke
     try:
         return explain_node(state)
     finally:
@@ -303,8 +307,8 @@ def run_live_evaluation() -> dict:
     return {
         "dataset_revision": DATASET_REVISION,
         "method": "live",
-        "model": settings.groq_model,
-        "provider": "groq",
+        "model": settings.openrouter_model,
+        "provider": "openrouter",
         "run_at": datetime.now(UTC).isoformat(),
         "settings": {
             "max_iterations": settings.max_iterations,

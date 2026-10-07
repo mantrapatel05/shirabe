@@ -1,4 +1,3 @@
-# Miniature fixture for Shirabe evaluation (original example, MIT, see ../README.md).
 """HTTP client honoring the configured timeout default."""
 
 from config import DEFAULT_TIMEOUT_SECONDS

@@ -1,4 +1,3 @@
-# Miniature fixture for Shirabe evaluation (original example, MIT, see ../README.md).
 """Tiny calculator used to test single-file behavior questions."""
 
 

@@ -1,4 +1,3 @@
-# Miniature fixture for Shirabe evaluation (original example, MIT, see ../README.md).
 """Order handler: receives an order dict, delegates pricing to the service."""
 
 from service import price_order

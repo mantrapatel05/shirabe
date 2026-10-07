@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from config import load_settings
 from errors import ProviderError
@@ -39,7 +40,7 @@ def _invoke(prompt: str) -> str:
     model = ChatOpenAI(
         model=settings.openrouter_model,
         temperature=0,
-        api_key=settings.openrouter_api_key,
+        api_key=SecretStr(settings.openrouter_api_key),
         base_url="https://openrouter.ai/api/v1",
     )
     try:

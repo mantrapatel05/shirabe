@@ -6,9 +6,9 @@ Shirabe is a Python CLI that investigates a repository and answers engineering q
 
 ## Screenshots
 
-![Shirabe CLI prompt](docs/images/cli-prompt.png)
+![Shirabe CLI prompt](images/interface.png)
 
-![Investigation answer with citation checks](docs/images/investigation-result.png)
+![Investigation answer with citation checks](images/image.png)
 
 ## Install
 
@@ -31,7 +31,7 @@ OPENROUTER_API_KEY=your_openrouter_api_key
 OPENROUTER_MODEL=nvidia/nemotron-3.5-lightning:free
 ```
 
-`.env.example` still contains legacy `GROQ_*` placeholders; the current CLI uses the `OPENROUTER_*` settings above. Keep API keys private. `.env` is gitignored.
+Keep API keys private. `.env` is gitignored.
 
 ## Use
 
@@ -87,7 +87,7 @@ The six versioned cases cover single-file behavior, cross-file flows, configurat
 | Abstention precision / recall | 1/1, 1/1 |
 | Claim support | Unlabeled; requires human review |
 
-The known misses involve a same-file symbol definition and a cross-file import. These small fixture results are regression signals, not general accuracy claims. See [fixture notes](tests/fixtures/README.md). The live benchmark option is exposed but currently references legacy Groq settings; use fixture mode for reproducible evaluation.
+The known misses involve a same-file symbol definition and a cross-file import. These small fixture results are regression signals, not general accuracy claims. See [fixture notes](tests/fixtures/README.md). Live benchmark mode uses the configured OpenRouter model and requires an API key; fixture mode remains the reproducible, credential-free evaluation path.
 
 ## Configuration
 

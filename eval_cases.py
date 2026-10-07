@@ -43,8 +43,8 @@ CASES: tuple[EvalCase, ...] = (
         queries=("total values", "add result"),
         answerable=True,
         relevant=(
-            RelevantRange("calc.py", 5, 7),
-            RelevantRange("calc.py", 10, 15),
+            RelevantRange("calc.py", 4, 6),
+            RelevantRange("calc.py", 9, 14),
         ),
     ),
     EvalCase(
@@ -54,9 +54,9 @@ CASES: tuple[EvalCase, ...] = (
         queries=("handle_order", "price_order"),
         answerable=True,
         relevant=(
-            RelevantRange("handler.py", 7, 10),
-            RelevantRange("service.py", 7, 10),
-            RelevantRange("models.py", 12, 16),
+            RelevantRange("handler.py", 6, 9),
+            RelevantRange("service.py", 6, 9),
+            RelevantRange("models.py", 11, 15),
         ),
     ),
     EvalCase(
@@ -66,8 +66,8 @@ CASES: tuple[EvalCase, ...] = (
         queries=("discount rate", "for_customer"),
         answerable=True,
         relevant=(
-            RelevantRange("service.py", 9, 10),
-            RelevantRange("models.py", 12, 16),
+            RelevantRange("service.py", 8, 9),
+            RelevantRange("models.py", 11, 15),
         ),
     ),
     EvalCase(
@@ -77,8 +77,8 @@ CASES: tuple[EvalCase, ...] = (
         queries=("DEFAULT_TIMEOUT_SECONDS", "fetch timeout"),
         answerable=True,
         relevant=(
-            RelevantRange("config.py", 5, 5),
-            RelevantRange("client.py", 7, 9),
+            RelevantRange("config.py", 4, 4),
+            RelevantRange("client.py", 6, 8),
         ),
     ),
     EvalCase(
@@ -88,8 +88,8 @@ CASES: tuple[EvalCase, ...] = (
         queries=("NegativeError", "raise Negative"),
         answerable=True,
         relevant=(
-            RelevantRange("parser.py", 5, 6),
-            RelevantRange("parser.py", 12, 13),
+            RelevantRange("parser.py", 4, 5),
+            RelevantRange("parser.py", 11, 12),
         ),
     ),
     EvalCase(

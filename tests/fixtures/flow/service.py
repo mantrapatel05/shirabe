@@ -1,4 +1,3 @@
-# Miniature fixture for Shirabe evaluation (original example, MIT, see ../README.md).
 """Pricing service: applies customer discount rules to an order."""
 
 from models import Discount
