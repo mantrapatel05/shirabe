@@ -13,8 +13,8 @@ from dataclasses import dataclass
 
 DATASET_REVISION = "v1"
 
-# Retrieval cutoff for recall@k. Kept small on purpose: fixtures are tiny,
-# so a miss at this cutoff is a real lexical gap, not an indexing artifact.
+
+
 RETRIEVAL_CUTOFF_K = 5
 
 

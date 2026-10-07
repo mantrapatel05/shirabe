@@ -17,11 +17,11 @@ def test_main_requires_repo_url_and_question(monkeypatch, capsys):
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setattr(main_module, "load_dotenv", lambda *a, **k: None)
     monkeypatch.setattr("sys.argv", ["main.py", "", ""])
-    
+
     class MockQuestionaryText:
         def __init__(self, *a, **k): pass
         def ask(self): return ""
-        
+
     monkeypatch.setattr(main_module.questionary, "text", MockQuestionaryText)
 
     exit_code = main_module.main()

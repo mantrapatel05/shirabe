@@ -104,7 +104,7 @@ def _strip_fences(text: str) -> str:
     end = cleaned.rfind("}")
     if start != -1 and end != -1 and end > start:
         cleaned = cleaned[start:end + 1]
-        
+
     if cleaned.startswith("```"):
         cleaned = "\n".join(line for line in cleaned.splitlines() if not line.strip().startswith("```"))
     return cleaned

@@ -17,10 +17,10 @@ from errors import ConfigError
 
 DEFAULT_MAX_EVIDENCE_CHARS = 30_000
 
-# Environment variables that switch LangSmith/LangChain tracing on. Fixture,
-# demo, and benchmark paths force these off so keyless runs never emit
-# traces; the live CLI path sets them explicitly only when tracing is
-# configured with a key.
+
+
+
+
 TRACING_ENV_VARS = ("LANGSMITH_TRACING", "LANGCHAIN_TRACING_V2")
 
 

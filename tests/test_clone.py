@@ -87,8 +87,8 @@ def test_clone_process_failure_cleans_up_and_raises(monkeypatch):
         clone_repository("https://github.com/psf/requests")
     after = set(Path(tempfile.gettempdir()).glob("shirabe_*"))
     assert after == before
-    # The raw stderr (which could theoretically contain sensitive detail from
-    # a self-hosted remote) must never reach the user-facing message.
+
+
     assert "fatal:" not in str(excinfo.value)
 
 
@@ -103,4 +103,4 @@ def test_cleanup_is_idempotent(monkeypatch):
     monkeypatch.setattr("tools.subprocess.run", _fake_success)
     repo_path = clone_repository("https://github.com/psf/requests")
     cleanup_repository(repo_path)
-    cleanup_repository(repo_path)  # must not raise on the second call
+    cleanup_repository(repo_path)

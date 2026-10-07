@@ -5,7 +5,12 @@ import os
 import sys
 import time
 
+import questionary
 from dotenv import load_dotenv
+from questionary import Style
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
 
 from config import load_settings
 from errors import ShirabeError
@@ -14,19 +19,13 @@ from graph import app
 from report import attach_review, build_investigation_report, delete_report, inspect_report, save_report
 from tools import check_repo_budget, cleanup_repository, clone_repository
 
-import questionary
-from questionary import Style
-from rich.console import Console
-from rich.markdown import Markdown
-from rich.panel import Panel
-
 console = Console()
 
 SHIRABE_BANNER = """[bold #F8FAFC]
   ██████╗ ██╗  ██╗██╗██████╗  █████╗ ██████╗ ███████╗
  ██╔════╝ ██║  ██║██║██╔══██╗██╔══██╗██╔══██╗██╔════╝
- ███████╗ ███████║██║██████╔╝███████║██████╔╝█████╗  
- ╚════██║ ██╔══██║██║██╔══██╗██╔══██║██╔══██╗██╔══╝  
+ ███████╗ ███████║██║██████╔╝███████║██████╔╝█████╗
+ ╚════██║ ██╔══██║██║██╔══██╗██╔══██║██╔══██╗██╔══╝
  ███████║ ██║  ██║██║██║  ██║██║  ██║██████╔╝███████╗
  ╚══════╝ ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝[/bold #F8FAFC]
  [#94A3B8]v1.0.0 | Autonomous Codebase Investigator[/#94A3B8]
@@ -110,8 +109,8 @@ def save_investigation_report(
 
 
 def main() -> int:
-    # Prevent UnicodeEncodeError on Windows consoles (cp1252) when printing
-    # LLM output that may contain arbitrary Unicode characters.
+
+
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     if hasattr(sys.stderr, "reconfigure"):
@@ -155,8 +154,10 @@ def main() -> int:
             console.print("[#EF4444]A repository URL and a question are both required.[/#EF4444]")
             return 1
         repo_url = repo_url.strip()
-        
-        question = args.question or questionary.text("Engineering Question:", qmark="▶", style=cli_style).ask()
+
+        question = args.question or questionary.text(
+            "Engineering Question:", qmark="▶", style=cli_style
+        ).ask()
         if not question:
             console.print("[#EF4444]A repository URL and a question are both required.[/#EF4444]")
             return 1
@@ -171,11 +172,17 @@ def main() -> int:
 
     repo_path: str | None = None
     try:
-        with console.status("[bold #E2E8F0]Loading repository...", spinner="line", spinner_style="bold #38BDF8"):
+        with console.status(
+            "[bold #E2E8F0]Loading repository...", spinner="line", spinner_style="bold #38BDF8"
+        ):
             repo_path = clone_repository(repo_url, timeout_seconds=settings.clone_timeout_seconds)
             check_repo_budget(repo_path, settings.max_repo_files, settings.max_repo_total_bytes)
 
-        with console.status("[bold #E2E8F0]Running investigation (this may take a minute)...", spinner="line", spinner_style="bold #38BDF8"):
+        with console.status(
+            "[bold #E2E8F0]Running investigation (this may take a minute)...",
+            spinner="line",
+            spinner_style="bold #38BDF8",
+        ):
             started = time.perf_counter()
             result = app.invoke(
                 {
@@ -197,13 +204,21 @@ def main() -> int:
             }
         )
         console.print("\n")
-        console.print(Panel(Markdown(result["answer"]), title="[bold #F8FAFC]REPORT[/bold #F8FAFC]", title_align="left", border_style="#475569", padding=(1, 2)))
-        
+        console.print(
+        Panel(
+            Markdown(result["answer"]),
+            title="[bold #F8FAFC]REPORT[/bold #F8FAFC]",
+            title_align="left",
+            border_style="#475569",
+            padding=(1, 2),
+        )
+    )
+
         records = result.get("evidence_records", [])
         if records:
             snapshot = records[0].snapshot_id or "unknown"
             console.print(f"[#94A3B8]Evidence: {len(records)} ranges (snapshot {snapshot})[/#94A3B8]")
-            
+
         checks = result.get("citation_report", [])
         if checks:
             console.print("\n[bold #E2E8F0]Citation integrity:[/bold #E2E8F0]")
@@ -214,9 +229,11 @@ def main() -> int:
                     console.print(f"  [#EF4444]✗[/#EF4444] [#E2E8F0]{line}[/#E2E8F0]")
                 else:
                     console.print(f"  [#E2E8F0]{line}[/#E2E8F0]")
-                    
+
         if result.get("abstained"):
-            console.print("\n[#F59E0B]Shirabe abstained: the checkout did not contain enough evidence.[/#F59E0B]")
+            console.print(
+                "\n[#F59E0B]Shirabe abstained: the checkout did not contain enough evidence.[/#F59E0B]"
+            )
         if args.save_report:
             return save_investigation_report(
                 args.save_report,

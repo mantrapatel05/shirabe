@@ -34,7 +34,7 @@ def _validate_github_url(repo_url: str) -> str:
     match = re.match(r"^/([^/]+)/([^/]+)", parsed.path)
     if not match:
         raise RepositoryError("Expected a URL of the form https://github.com/owner/repository")
-    
+
     owner, repo = match.groups()
     if repo.endswith(".git"):
         repo = repo[:-4]
