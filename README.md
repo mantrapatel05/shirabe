@@ -130,8 +130,6 @@ Repository cloning is shallow and has a configurable timeout (default 120 s). Re
 
 ## Architecture
 
-## Architecture
-
 ```text
 main.py / demo.py ──→ graph.py ──→ nodes.py ──→ tools.py (read-only checkout)
                          │              ├── evidence.py (records, claim parsing, citation checks)
@@ -192,7 +190,9 @@ stays lexical for this release; a narrow symbol/import expansion is the
 candidate to judge on this dataset next. Fixture numbers are regression
 signals, not general accuracy claims.
 
-## Known failures
+## Safety & Error Handling
+
+These are expected limitations and safety boundaries handled gracefully by the system:
 
 - Malformed model output (bad planner JSON, non-claim explainer JSON) fails
   the run with a short provider error instead of a guessed answer.
